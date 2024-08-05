@@ -1,0 +1,39 @@
+name: Deploy to VM
+
+on:
+  push:
+    branches:
+    - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Deploy to VM
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        VM_HOST: ${{ secrets.VM_HOST }}
+        VM_USER: ${{ secrets.VM_USER }}
+      run: |
+        echo "${SSH_PRIVATE_KEY}" > private_key
+        chmod 600 private_key
+        ssh -o StrictHostKeyChecking=no -i private_key ${VM_USER}@${VM_HOST} << 'EOF'
+          sudo pkill node || true
+          cd /path/to/your/app
+          git pull origin master
+          npm install
+          sudo nohup node server.js &
+          exit
+        EOF
